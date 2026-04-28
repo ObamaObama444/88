@@ -40,7 +40,7 @@ ros/goal_proxy.py                     мост /goal -> /navigate_to_pose
 detection/low_latency_yolo_site.py    HTTP-сервис подсчета на порту 8989
 detection/yolo_ros_web.py             альтернативный веб/ROS детектор
 maps/sticker_points.yaml              точки объезда стикеров
-maps/start_pose.yaml                  стартовая поза
+maps/start_pose.yaml                  стартовая поза, теперь локальный ноль
 maps/final_map.*                      сохраненная occupancy grid карта
 maps/final_posegraph.*                сохраненный posegraph slam_toolbox
 tools/load_map_and_start.sh           загрузка карты и стартовой позы
@@ -145,6 +145,29 @@ stickers:
 ```
 
 `yaw` в этом файле задан в радианах.
+
+## Локальный ноль старта
+
+Точки в `maps/sticker_points.yaml` уже пересчитаны из старой карты в локальную систему старта робота.
+
+Старый якорь на карте был:
+
+```text
+x = 3.605
+y = 0.055
+yaw = 1.505 rad
+```
+
+Теперь этот якорь считается новым нулем:
+
+```yaml
+start:
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+```
+
+Это соответствует сценарию, где при включении робот зануляется в точке старта, а все цели задаются относительно этой якорной точки.
 
 ## Важные условия
 
