@@ -6,7 +6,7 @@ stickers:
 - id: sticker_2
   x: 2.247
   y: -0.736
-  yaw: -0.25
+  yaw: -0.13
 - id: sticker_6
   x: 0.646
   y: -2.287
@@ -14,7 +14,7 @@ stickers:
 - id: sticker_7
   x: 0.018
   y: -2.319
-  yaw: -1.72
+  yaw: -1.6
 - id: sticker_5
   x: 1.398
   y: -2.42
