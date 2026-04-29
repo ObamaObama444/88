@@ -115,6 +115,10 @@ class DriveScanClassifyMission(Node):
             "MINIAPP_MISSION_CLASSIFY_URL",
             f"{base_url}/api/robot/mission/classify-point",
         )
+        self.complete_url = os.getenv(
+            "MINIAPP_MISSION_COMPLETE_URL",
+            f"{base_url}/api/robot/mission/complete",
+        )
         self.robot_token = os.getenv("ROBOT_PUSH_TOKEN")
         if not self.robot_token:
             raise RuntimeError("ROBOT_PUSH_TOKEN is required")
@@ -358,6 +362,25 @@ class DriveScanClassifyMission(Node):
         }
         write_json(self.mission_dir / "mission_summary.json", payload)
 
+    def notify_mission_complete(self, status, target=None, error=None):
+        payload = {
+            "mission_id": self.mission_id,
+            "status": status,
+            "points": self.records,
+            "counts": dict(self.counts),
+            "target": target,
+            "error": str(error) if error else None,
+        }
+        write_json(self.mission_dir / "mission_summary.json", payload)
+        try:
+            response = post_json(self.complete_url, self.robot_token, payload, self.api_timeout_sec)
+            if not response.get("ok"):
+                self.status(f"MISSION_COMPLETE_NOTIFY_FAILED response={response}")
+            else:
+                self.status(f"MISSION_COMPLETE_NOTIFIED status={status}")
+        except Exception as notify_error:
+            self.status(f"MISSION_COMPLETE_NOTIFY_ERROR {notify_error}")
+
     def run(self):
         self.status("MISSION_START_SCAN_CLASSIFY")
 
@@ -391,11 +414,17 @@ class DriveScanClassifyMission(Node):
 
         self.status(f"MISSION_SCAN_FINISHED counts={dict(self.counts)}")
         target_class, target = self.choose_final_target()
-        self.write_summary(target={"class_name": target_class, **target} if target else None)
+        target_summary = {"class_name": target_class, **target} if target else None
+        self.write_summary(target=target_summary)
 
         if not target:
             self.status("MISSION_NO_COUNTED_CLASSES_STOP")
             self.stop_robot()
+            self.notify_mission_complete(
+                "failed",
+                target=None,
+                error="no counted classes were found during mission",
+            )
             return
 
         target_point = target["point"]
@@ -407,12 +436,19 @@ class DriveScanClassifyMission(Node):
         if target["distance"] <= self.final_already_there_dist:
             self.status(f"MISSION_TARGET_ALREADY_HERE point={target_point['id']}")
             self.stop_robot()
+            self.notify_mission_complete("completed", target=target_summary)
             return
 
         if self.go_to(target_point):
             self.status("MISSION_FINISHED_AT_RAREST_CLASS_POINT")
+            self.notify_mission_complete("completed", target=target_summary)
         else:
             self.status("MISSION_FINAL_NAV_FAILED")
+            self.notify_mission_complete(
+                "failed",
+                target=target_summary,
+                error="final navigation to rarest class point failed",
+            )
 
         self.stop_robot()
 
@@ -427,10 +463,12 @@ def main():
         if node is not None:
             node.status("MISSION_INTERRUPTED")
             node.stop_robot()
+            node.notify_mission_complete("failed", error="mission interrupted")
     except Exception as error:
         if node is not None:
             node.status(f"MISSION_FATAL {error}")
             node.stop_robot()
+            node.notify_mission_complete("failed", error=error)
         else:
             raise
     finally:
