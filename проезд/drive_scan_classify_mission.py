@@ -30,6 +30,7 @@ DEFAULT_OUTPUT_ROOT = "/tmp/rover-mission"
 DEFAULT_BASE_URL = "https://www.adolanna.ru"
 DEFAULT_RTSP_URL = "rtsp://172.18.0.2:8554/cam"
 DEFAULT_FRAME_COUNT = 8
+DEFAULT_MIN_FRAME_COUNT = 4
 DEFAULT_DWELL_SEC = 3.0
 DEFAULT_NAV_TIMEOUT_SEC = 80.0
 DEFAULT_API_TIMEOUT_SEC = 120.0
@@ -97,6 +98,7 @@ class DriveScanClassifyMission(Node):
         self.mission_id = os.getenv("MISSION_ID", mission_id_now())
         self.rtsp_url = os.getenv("ROBOT_RTSP_URL", DEFAULT_RTSP_URL)
         self.frame_count = max(1, env_int("MISSION_FRAME_COUNT", DEFAULT_FRAME_COUNT))
+        self.min_frame_count = max(1, env_int("MISSION_MIN_FRAME_COUNT", DEFAULT_MIN_FRAME_COUNT))
         self.dwell_sec = max(0.1, env_float("MISSION_DWELL_SEC", DEFAULT_DWELL_SEC))
         self.nav_timeout_sec = max(1.0, env_float("MISSION_NAV_TIMEOUT_SEC", DEFAULT_NAV_TIMEOUT_SEC))
         self.api_timeout_sec = max(5.0, env_float("MISSION_API_TIMEOUT_SEC", DEFAULT_API_TIMEOUT_SEC))
@@ -249,8 +251,10 @@ class DriveScanClassifyMission(Node):
             raise RuntimeError(f"ffmpeg failed: {message[-500:]}")
 
         frames = sorted(point_dir.glob("frame_*.jpg"))
-        if len(frames) != self.frame_count:
-            raise RuntimeError(f"Expected {self.frame_count} frames, got {len(frames)}")
+        if len(frames) < self.min_frame_count:
+            raise RuntimeError(f"Expected at least {self.min_frame_count} frames, got {len(frames)}")
+        if len(frames) < self.frame_count:
+            self.status(f"CAPTURE_PARTIAL {p['id']} expected={self.frame_count} got={len(frames)}")
 
         for path in frames:
             if path.stat().st_size <= 0 or path.stat().st_size > self.max_frame_bytes:
