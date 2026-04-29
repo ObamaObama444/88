@@ -8,6 +8,15 @@ stickers:
   y: -0.736
   yaw: -0.13
 - id: sticker_6
+  via:
+  - id: clear_left_turn_after_sticker_2
+    x: 2.05
+    y: -1.25
+    yaw: -1.57
+  - id: center_before_sticker_6
+    x: 1.2
+    y: -2.08
+    yaw: 3.05
   x: 0.646
   y: -2.287
   yaw: 1.534

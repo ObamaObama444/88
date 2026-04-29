@@ -205,6 +205,28 @@ class DriveScanClassifyMission(Node):
         self.status(f"ARRIVED {p['id']}")
         return True
 
+    def go_via_points(self, p):
+        via_points = p.get("via") or []
+        if not isinstance(via_points, list):
+            self.status(f"INVALID_VIA_POINTS {p['id']}")
+            return False
+
+        for via in via_points:
+            if not isinstance(via, dict):
+                self.status(f"INVALID_VIA_POINT {p['id']}")
+                return False
+            via_id = via.get("id") or f"via_before_{p['id']}"
+            via_point = {
+                "id": str(via_id),
+                "x": float(via["x"]),
+                "y": float(via["y"]),
+                "yaw": float(via["yaw"]),
+            }
+            self.status(f"GO_VIA target={p['id']} via={via_point['id']}")
+            if not self.go_to(via_point):
+                return False
+        return True
+
     def point_dir(self, p):
         return self.mission_dir / str(p["id"])
 
@@ -389,6 +411,10 @@ class DriveScanClassifyMission(Node):
         self.status("MISSION_START_SCAN_CLASSIFY")
 
         for p in self.points:
+            if not self.go_via_points(p):
+                self.record_failure(p, "nav_failed", "via navigation failed")
+                continue
+
             if not self.go_to(p):
                 self.record_failure(p, "nav_failed", "navigation failed")
                 continue
