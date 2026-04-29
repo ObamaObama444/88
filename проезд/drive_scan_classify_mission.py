@@ -175,6 +175,12 @@ class DriveScanClassifyMission(Node):
             payload["result"] = result
         post_json(self.event_url, self.robot_token, payload, timeout_sec=5.0)
 
+    def safe_post_event(self, event, point=None, result=None):
+        try:
+            self.post_event(event, point=point, result=result)
+        except Exception as error:
+            self.get_logger().warning(f"MISSION_EVENT_POST_FAILED {error}")
+
     def stop_robot(self):
         msg = Twist()
         msg.linear.x = 0.0
@@ -198,7 +204,7 @@ class DriveScanClassifyMission(Node):
     def go_to(self, p, timeout=None):
         timeout = self.nav_timeout_sec if timeout is None else timeout
         self.status(f"GO_TO {p['id']} x={p['x']} y={p['y']} yaw={p['yaw']}")
-        self.post_event(f"GO_TO {p['id']}", point=p)
+        self.safe_post_event(f"GO_TO {p['id']}", point=p)
 
         if not self.nav_client.wait_for_server(timeout_sec=5.0):
             self.status("ERROR_NAVIGATE_TO_POSE_NOT_AVAILABLE")
@@ -230,7 +236,7 @@ class DriveScanClassifyMission(Node):
         self.stop_robot()
         self.last_successful_point = p
         self.status(f"ARRIVED {p['id']}")
-        self.post_event(f"ARRIVED {p['id']}", point=p)
+        self.safe_post_event(f"ARRIVED {p['id']}", point=p)
         return True
 
     def go_via_points(self, p):
@@ -382,7 +388,7 @@ class DriveScanClassifyMission(Node):
         self.records.append(record)
         write_json(self.point_dir(p) / "result.json", record)
         self.write_summary()
-        self.post_event(f"POINT_FAILED {p['id']}", point=p, result=record)
+        self.safe_post_event(f"POINT_FAILED {p['id']}", point=p, result=record)
         self.status(f"POINT_FAILED {p['id']} status={status} error={error}")
 
     def choose_final_target(self):
