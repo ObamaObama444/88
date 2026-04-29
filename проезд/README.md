@@ -29,7 +29,7 @@ docker exec ros bash -ic "python3 /src/scripts/drive_all_points.py"
 Именно этой командой робот успешно проехал:
 
 ```text
-sticker_1 -> sticker_2 -> sticker_3 -> sticker_4 -> sticker_5 -> sticker_6 -> sticker_7 -> sticker_8
+sticker_3 -> sticker_2 -> sticker_6 -> sticker_7 -> sticker_5 -> sticker_4 -> sticker_1 -> sticker_8
 ```
 
 ## Команда запуска миссии с классификацией
@@ -47,6 +47,7 @@ docker exec \
 По умолчанию миссия:
 
 - сканирует все 8 точек из `/src/maps/sticker_points.yaml`;
+- едет в порядке `sticker_3 -> sticker_2 -> sticker_6 -> sticker_7 -> sticker_5 -> sticker_4 -> sticker_1 -> sticker_8`;
 - стоит на каждой точке 3 секунды;
 - сохраняет 8 кадров в `/tmp/rover-mission/<mission_id>/<point_id>`;
 - отправляет кадры на `/api/robot/mission/classify-point`;
